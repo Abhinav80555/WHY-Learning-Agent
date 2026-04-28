@@ -1,0 +1,16 @@
+services:
+  - type: worker          # Background worker — free tier on Render
+    name: why-learning-agent
+    env: node
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false         # Set in Render dashboard
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+    autoDeploy: true        # Auto-deploy on git push
