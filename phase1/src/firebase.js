@@ -1,19 +1,19 @@
 import admin from "firebase-admin";
-import { readFileSync } from "fs";
 
 function initDb() {
   try {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    if (process.env.FIREBASE_PROJECT_ID) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+        }),
+      });
+      console.log("✅ Firebase connected");
       return admin.firestore();
     }
-    if (process.env.FIREBASE_KEY_PATH) {
-      const serviceAccount = JSON.parse(readFileSync(process.env.FIREBASE_KEY_PATH, "utf8"));
-      admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-      return admin.firestore();
-    }
-    console.warn("⚠️  No Firebase credentials found. Using in-memory mock DB for local dev.");
+    console.warn("⚠️  No Firebase credentials. Using in-memory mock DB.");
     return createMockDb();
   } catch (err) {
     console.error("Firebase init error:", err.message);
@@ -56,5 +56,4 @@ function createMockDb() {
 }
 
 const db = initDb();
-
 export { db };
