@@ -1,7 +1,6 @@
 import { Bot, InlineKeyboard, session } from "grammy";
 import { db } from "./firebase.js";
 import { generateRecommendation } from "./ai.js";
-import { scheduleDaily } from "./scheduler.js";
 
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -565,7 +564,7 @@ bot.callbackQuery(/^rate_(\d)$/, async (ctx) => {
 export async function sendDailyRecommendation(chatId, userId, user, botInstance) {
   const b = botInstance || bot;
   try {
-    const rec       = await generateRecommendation(user);
+    const rec = await generateRecommendation(user);
     const firstName = user.name ? ` ${user.name.split(" ")[0]}` : "";
 
     const msg =
@@ -582,18 +581,23 @@ export async function sendDailyRecommendation(chatId, userId, user, botInstance)
       reply_markup: new InlineKeyboard()
         .url("▶️  Start Learning", rec.resourceUrl).row()
         .text("✅  Mark as Done", "mark_done")
-        .text("⏭  Skip Today",   "confirm_skip"),
+        .text("⏭  Skip Today", "confirm_skip"),
       disable_web_page_preview: true,
     });
 
     await db.collection("recommendations").add({
       userId,
-      topic:  rec.topic,
+      topic: rec.topic,
       sentAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error("Failed to send recommendation:", err);
-    await b.api.sendMessage(chatId, "⚠️  Couldn't generate today's lesson. Try /today again.");
+    if (err.error_code === 400 || err.error_code === 403) {
+      throw err;
+    }
+    console.error("Failed to generate recommendation:", err);
+    try {
+      await b.api.sendMessage(chatId, "⚠️  Couldn't generate today's lesson. Try /today again.");
+    } catch (_) {}
   }
 }
 

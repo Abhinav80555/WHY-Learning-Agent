@@ -21,11 +21,18 @@ export function scheduleDaily(bot) {
       for (const doc of users) {
         const userId = doc.id;
         const user = doc.data();
-
-        // Telegram chat IDs match user IDs for private chats
-        await sendDailyRecommendation(userId, userId, user, bot);
-
-        // 100ms throttle — Telegram allows ~30 messages/sec to different users
+      
+        try {
+          await sendDailyRecommendation(userId, userId, user, bot);
+        } catch (err) {
+          if (err.error_code === 403 || err.error_code === 400) {
+            console.warn(`Skipping user ${userId}: ${err.description}`);
+            await db.collection("users").doc(userId).update({ onboarded: false });
+          } else {
+            console.error(`Unexpected error for user ${userId}:`, err);
+          }
+        }
+      
         await new Promise((r) => setTimeout(r, 100));
       }
 
